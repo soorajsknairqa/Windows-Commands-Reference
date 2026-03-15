@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WinCMD — Windows Command Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #141b24;
+    --surface3: #1a2332;
+    --border: #1e2d3d;
+    --border2: #2a3f55;
+    --cmd: #00d4ff;
+    --ps: #b44be0;
+    --both: #00e5a0;
+    --text: #c9d1d9;
+    --text2: #8b949e;
+    --text3: #586069;
+    --accent: #ff6b35;
+    --warn: #f0b429;
+    --glow-cmd: 0 0 20px rgba(0,212,255,0.3);
+    --glow-ps: 0 0 20px rgba(180,75,224,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(8,12,16,0.92);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 56px;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: #fff;
+    white-space: nowrap;
+  }
+
+  .logo span {
+    color: var(--cmd);
+    text-shadow: var(--glow-cmd);
+  }
+
+  .search-wrap {
+    flex: 1;
+    position: relative;
+  }
+
+  .search-wrap svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    pointer-events: none;
+  }
+
+  #search {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px 9px 36px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #search:focus {
+    border-color: var(--cmd);
+    box-shadow: var(--glow-cmd);
+  }
+
+  #search::placeholder { color: var(--text3); }
+
+  /* Filter tabs */
+  .filters {
+    display: flex;
+    gap: 6px;
+    padding: 12px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,12,16,0.7);
+    position: sticky;
+    top: 56px;
+    z-index: 90;
+  }
+
+  .filters::-webkit-scrollbar { display: none; }
+
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover { border-color: var(--border2); color: var(--text); }
+
+  .filter-btn.active-all { border-color: var(--text); color: #fff; background: var(--surface2); }
+  .filter-btn.active-cmd { border-color: var(--cmd); color: var(--cmd); background: rgba(0,212,255,0.08); box-shadow: var(--glow-cmd); }
+  .filter-btn.active-ps { border-color: var(--ps); color: var(--ps); background: rgba(180,75,224,0.08); box-shadow: var(--glow-ps); }
+  .filter-btn.active-both { border-color: var(--both); color: var(--both); background: rgba(0,229,160,0.08); }
+
+  /* Category filter chips */
+  .cat-chip {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .cat-chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(255,107,53,0.08);
+  }
+
+  /* Main layout */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 32px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .section-count {
+    font-size: 10px;
+    color: var(--text3);
+    background: var(--surface2);
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+
+  /* Command grid */
+  .cmd-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 8px;
+  }
+
+  @media (max-width: 600px) {
+    .cmd-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Command card */
+  .cmd-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cmd-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    border-radius: 3px 0 0 3px;
+    transition: all 0.2s;
+  }
+
+  .cmd-card.type-cmd::before { background: var(--cmd); }
+  .cmd-card.type-ps::before { background: var(--ps); }
+  .cmd-card.type-both::before { background: var(--both); }
+
+  .cmd-card:hover {
+    border-color: var(--border2);
+    transform: translateY(-1px);
+    background: var(--surface2);
+  }
+
+  .cmd-card.type-cmd:hover { box-shadow: 0 4px 20px rgba(0,212,255,0.1); }
+  .cmd-card.type-ps:hover { box-shadow: 0 4px 20px rgba(180,75,224,0.1); }
+  .cmd-card.type-both:hover { box-shadow: 0 4px 20px rgba(0,229,160,0.1); }
+
+  .cmd-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .cmd-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    flex: 1;
+  }
+
+  .cmd-card.type-cmd .cmd-name { color: var(--cmd); }
+  .cmd-card.type-ps .cmd-name { color: var(--ps); }
+  .cmd-card.type-both .cmd-name { color: var(--both); }
+
+  .type-badge {
+    font-size: 9px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .badge-cmd { background: rgba(0,212,255,0.12); color: var(--cmd); border: 1px solid rgba(0,212,255,0.2); }
+  .badge-ps { background: rgba(180,75,224,0.12); color: var(--ps); border: 1px solid rgba(180,75,224,0.2); }
+  .badge-both { background: rgba(0,229,160,0.12); color: var(--both); border: 1px solid rgba(0,229,160,0.2); }
+
+  .cmd-desc {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .cmd-syntax {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .syntax-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .copy-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+
+  .copy-btn:hover { color: var(--text); }
+  .copy-btn.copied { color: var(--both); }
+
+  /* Detail modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-width: 680px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px 20px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+  }
+
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+
+  .modal-drag {
+    width: 36px; height: 4px;
+    background: var(--border2);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .modal-type-cmd .modal-title { color: var(--cmd); text-shadow: var(--glow-cmd); }
+  .modal-type-ps .modal-title { color: var(--ps); text-shadow: var(--glow-ps); }
+  .modal-type-both .modal-title { color: var(--both); }
+
+  .modal-subtitle {
+    color: var(--text2);
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .modal-section {
+    margin-bottom: 18px;
+  }
+
+  .modal-label {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 8px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+  }
+
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text);
+    position: relative;
+  }
+
+  .code-block .copy-all {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .code-block .copy-all:hover {
+    border-color: var(--text2);
+    color: var(--text);
+  }
+
+  .code-line { display: block; }
+  .code-comment { color: var(--text3); }
+  .code-flag { color: var(--warn); }
+  .code-path { color: var(--accent); }
+  .code-string { color: var(--both); }
+
+  .flags-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .flag-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+
+  .flag-key {
+    color: var(--warn);
+    min-width: 80px;
+    flex-shrink: 0;
+  }
+
+  .flag-val { color: var(--text2); }
+
+  .modal-close {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.2s;
+  }
+
+  .modal-close:hover { border-color: var(--text); color: var(--text); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,12,16,0.5);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Stats bar */
+  .stats {
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 16px;
+  }
+
+  .stats span { color: var(--text2); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-text { font-size: 14px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .cmd-card {
+    animation: fadeIn 0.3s ease both;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">Win<span>CMD</span></div>
+    <div class="search-wrap">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="Search commands..." autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--cmd)"></div> CMD only</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--ps)"></div> PowerShell only</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--both)"></div> Both</div>
+</div>
+
+<div class="filters" id="filters">
+  <button class="filter-btn active-all" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="cmd">CMD</button>
+  <button class="filter-btn" data-filter="ps">PowerShell</button>
+  <button class="filter-btn" data-filter="both">Both</button>
+  <div style="width:1px;background:var(--border);flex-shrink:0;margin:4px 2px"></div>
+  <button class="cat-chip" data-cat="Files">📁 Files</button>
+  <button class="cat-chip" data-cat="Network">🌐 Network</button>
+  <button class="cat-chip" data-cat="System">⚙️ System</button>
+  <button class="cat-chip" data-cat="Process">🔄 Process</button>
+  <button class="cat-chip" data-cat="Users">👤 Users</button>
+  <button class="cat-chip" data-cat="Disk">💾 Disk</button>
+  <button class="cat-chip" data-cat="Registry">🗝 Registry</button>
+  <button class="cat-chip" data-cat="Security">🔒 Security</button>
+  <button class="cat-chip" data-cat="Services">🛠 Services</button>
+  <button class="cat-chip" data-cat="Scripting">📜 Scripting</button>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<main id="main"></main>
+
+<!-- Credits -->
+<div style="text-align:center;padding:20px 16px;border-top:1px solid var(--border);color:var(--text3);font-size:11px;letter-spacing:1px;position:relative;z-index:1;">
+  Built by <span style="color:var(--cmd);text-shadow:var(--glow-cmd);font-weight:700;letter-spacing:2px;">SSK-BLUM</span>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-drag"></div>
+    <button class="modal-close" onclick="closeModalBtn()">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+const COMMANDS = [
+  // FILES
+  { name: "dir", type: "cmd", cat: "Files", desc: "List files and directories in current folder", syntax: "dir [path] [/a] [/s] [/b]", flags: [{k:"/a",v:"Show hidden files"},{k:"/s",v:"Recursive subdirs"},{k:"/b",v:"Bare format"},{k:"/w",v:"Wide format"}], examples: ["dir", "dir C:\\Users /a /s", "dir *.txt /b"] },
+  { name: "Get-ChildItem", short: "ls / gci", type: "ps", cat: "Files", desc: "List directory contents (PowerShell equivalent of dir)", syntax: "Get-ChildItem [path] [-Recurse] [-Hidden]", flags: [{k:"-Recurse",v:"Include subdirs"},{k:"-Hidden",v:"Show hidden"},{k:"-Filter",v:"Filter by name"},{k:"-Force",v:"Show all"},{k:"-Name",v:"Names only"}], examples: ["Get-ChildItem", "gci C:\\Users -Recurse -Hidden", "ls *.ps1"] },
+  { name: "cd / chdir", type: "both", cat: "Files", desc: "Change current directory", syntax: "cd [path]", flags: [{k:"..",v:"Go up one level"},{k:"\\",v:"Go to root"},{k:"/d",v:"(CMD) Change drive"}], examples: ["cd C:\\Users", "cd ..", "cd /d D:\\Projects"] },
+  { name: "mkdir / md", type: "both", cat: "Files", desc: "Create a new directory", syntax: "mkdir [dirname]", flags: [], examples: ["mkdir NewFolder", "md C:\\Projects\\App", "New-Item -ItemType Directory -Name Test"] },
+  { name: "rmdir / rd", type: "cmd", cat: "Files", desc: "Remove a directory", syntax: "rmdir [path] [/s] [/q]", flags: [{k:"/s",v:"Remove subdirs"},{k:"/q",v:"Quiet mode"}], examples: ["rmdir OldFolder", "rd /s /q C:\\Temp\\junk"] },
+  { name: "Remove-Item", short: "rm / del / ri", type: "ps", cat: "Files", desc: "Delete files or directories", syntax: "Remove-Item [path] [-Recurse] [-Force]", flags: [{k:"-Recurse",v:"Delete subdirs"},{k:"-Force",v:"Force delete"},{k:"-WhatIf",v:"Preview action"}], examples: ["Remove-Item file.txt", "ri C:\\Temp -Recurse -Force", "del *.tmp"] },
+  { name: "copy / xcopy", type: "cmd", cat: "Files", desc: "Copy files and directories", syntax: "copy [src] [dest] | xcopy [src] [dest] [/e]", flags: [{k:"/e",v:"Copy subdirs"},{k:"/y",v:"No overwrite confirm"},{k:"/h",v:"Copy hidden files"}], examples: ["copy file.txt D:\\Backup", "xcopy C:\\src D:\\dst /e /h /i"] },
+  { name: "Copy-Item", short: "cp / ci", type: "ps", cat: "Files", desc: "Copy files or directories", syntax: "Copy-Item [src] [dest] [-Recurse]", flags: [{k:"-Recurse",v:"Copy subdirs"},{k:"-Force",v:"Overwrite"},{k:"-PassThru",v:"Return object"}], examples: ["Copy-Item file.txt D:\\Backup", "cp -r C:\\src D:\\dst"] },
+  { name: "move / mv", type: "both", cat: "Files", desc: "Move or rename files and directories", syntax: "move [src] [dest]", flags: [{k:"/y",v:"No confirm"}], examples: ["move file.txt D:\\Archive", "move oldname.txt newname.txt"] },
+  { name: "del / erase", type: "cmd", cat: "Files", desc: "Delete one or more files", syntax: "del [file] [/f] [/s] [/q]", flags: [{k:"/f",v:"Force read-only"},{k:"/s",v:"All subdirs"},{k:"/q",v:"Quiet mode"},{k:"/a",v:"By attributes"}], examples: ["del file.txt", "del /f /s /q *.tmp", "erase C:\\Logs\\*.log"] },
+  { name: "type", type: "cmd", cat: "Files", desc: "Display contents of a text file", syntax: "type [filename]", flags: [], examples: ["type file.txt", "type C:\\config.ini"] },
+  { name: "Get-Content", short: "cat / gc", type: "ps", cat: "Files", desc: "Read and display file contents", syntax: "Get-Content [path] [-Tail N] [-Wait]", flags: [{k:"-Tail",v:"Last N lines"},{k:"-Wait",v:"Live tail"},{k:"-TotalCount",v:"First N lines"}], examples: ["Get-Content log.txt", "gc log.txt -Tail 20", "cat config.ini"] },
+  { name: "attrib", type: "both", cat: "Files", desc: "Display or change file attributes", syntax: "attrib [+/-attr] [file]", flags: [{k:"+R",v:"Set read-only"},{k:"-R",v:"Clear read-only"},{k:"+H",v:"Set hidden"},{k:"+S",v:"Set system"}], examples: ["attrib +H secret.txt", "attrib -R -H file.txt"] },
+  { name: "rename / ren", type: "both", cat: "Files", desc: "Rename a file or directory", syntax: "rename [oldname] [newname]", flags: [], examples: ["rename old.txt new.txt", "ren *.htm *.html"] },
+  { name: "find / findstr", type: "cmd", cat: "Files", desc: "Search for text strings in files", syntax: "findstr [/i] [/r] \"pattern\" [file]", flags: [{k:"/i",v:"Case insensitive"},{k:"/r",v:"Use regex"},{k:"/s",v:"Subdirectories"},{k:"/n",v:"Print line numbers"}], examples: ["findstr \"error\" log.txt", "findstr /s /i \"TODO\" *.cs"] },
+  { name: "Select-String", short: "sls", type: "ps", cat: "Files", desc: "Search text in files (like grep)", syntax: "Select-String [pattern] [file]", flags: [{k:"-CaseSensitive",v:"Case sensitive"},{k:"-Pattern",v:"Regex pattern"},{k:"-Recurse",v:"Recursive search"}], examples: ["sls 'error' log.txt", "Get-ChildItem *.cs | sls 'TODO'"] },
+  { name: "where / where.exe", type: "both", cat: "Files", desc: "Locate executables in PATH", syntax: "where [command]", flags: [], examples: ["where python", "where node", "Get-Command python"] },
+  { name: "tree", type: "cmd", cat: "Files", desc: "Display directory structure as tree", syntax: "tree [path] [/f] [/a]", flags: [{k:"/f",v:"Show files"},{k:"/a",v:"ASCII chars"}], examples: ["tree", "tree C:\\Projects /f /a"] },
+
+  // NETWORK
+  { name: "ipconfig", type: "cmd", cat: "Network", desc: "Display TCP/IP network configuration", syntax: "ipconfig [/all] [/release] [/renew]", flags: [{k:"/all",v:"Detailed info"},{k:"/release",v:"Release IP"},{k:"/renew",v:"Renew IP"},{k:"/flushdns",v:"Flush DNS cache"},{k:"/displaydns",v:"Show DNS cache"}], examples: ["ipconfig /all", "ipconfig /flushdns", "ipconfig /release && ipconfig /renew"] },
+  { name: "ping", type: "both", cat: "Network", desc: "Test network connectivity to a host", syntax: "ping [host] [-n count] [-t]", flags: [{k:"-n",v:"Number of pings"},{k:"-t",v:"Ping forever"},{k:"-l",v:"Buffer size"},{k:"-4/-6",v:"IPv4 or IPv6"}], examples: ["ping google.com", "ping -t 8.8.8.8", "ping -n 10 192.168.1.1"] },
+  { name: "tracert", type: "cmd", cat: "Network", desc: "Trace route to a network host", syntax: "tracert [host] [-d] [-h max]", flags: [{k:"-d",v:"No DNS resolution"},{k:"-h",v:"Max hops"},{k:"-w",v:"Timeout ms"}], examples: ["tracert google.com", "tracert -d 8.8.8.8"] },
+  { name: "Test-NetConnection", short: "tnc", type: "ps", cat: "Network", desc: "Diagnose network connection", syntax: "Test-NetConnection [host] [-Port N]", flags: [{k:"-Port",v:"Test specific port"},{k:"-TraceRoute",v:"Trace route"},{k:"-InformationLevel",v:"Detail level"}], examples: ["Test-NetConnection google.com", "tnc google.com -Port 443"] },
+  { name: "netstat", type: "both", cat: "Network", desc: "Display active TCP connections and ports", syntax: "netstat [-a] [-n] [-b] [-o]", flags: [{k:"-a",v:"All connections"},{k:"-n",v:"Numeric addresses"},{k:"-b",v:"Executable per conn"},{k:"-o",v:"Show PIDs"},{k:"-p",v:"Filter by protocol"}], examples: ["netstat -an", "netstat -b -o", "netstat -an | findstr :80"] },
+  { name: "nslookup", type: "both", cat: "Network", desc: "Query DNS servers for domain info", syntax: "nslookup [domain] [server]", flags: [], examples: ["nslookup google.com", "nslookup google.com 8.8.8.8"] },
+  { name: "Resolve-DnsName", type: "ps", cat: "Network", desc: "Perform DNS name resolution", syntax: "Resolve-DnsName [name] [-Type A]", flags: [{k:"-Type",v:"Record type (A,MX,NS)"},{k:"-Server",v:"DNS server to use"}], examples: ["Resolve-DnsName google.com", "Resolve-DnsName google.com -Type MX"] },
+  { name: "netsh", type: "cmd", cat: "Network", desc: "Network shell — configure network settings", syntax: "netsh [context] [command]", flags: [], examples: ["netsh wlan show profiles", "netsh wlan show profile name=\"WiFi\" key=clear", "netsh int ip reset", "netsh advfirewall show allprofiles"] },
+  { name: "arp", type: "both", cat: "Network", desc: "Display and modify ARP cache", syntax: "arp -a | -d | -s", flags: [{k:"-a",v:"Show ARP table"},{k:"-d",v:"Delete entry"},{k:"-s",v:"Add static entry"}], examples: ["arp -a", "arp -d 192.168.1.1"] },
+  { name: "net use", type: "cmd", cat: "Network", desc: "Connect to or disconnect network shares", syntax: "net use [drive:] [\\\\server\\share]", flags: [{k:"/delete",v:"Disconnect"},{k:"/user",v:"Specify user"},{k:"/persistent",v:"Persistent conn"}], examples: ["net use Z: \\\\server\\share", "net use * /delete"] },
+  { name: "Invoke-WebRequest", short: "curl / iwr", type: "ps", cat: "Network", desc: "Send HTTP requests and get web content", syntax: "Invoke-WebRequest [uri] [-Method POST]", flags: [{k:"-Method",v:"HTTP verb"},{k:"-Headers",v:"Custom headers"},{k:"-Body",v:"Request body"},{k:"-OutFile",v:"Save to file"}], examples: ["iwr https://api.github.com", "curl https://google.com -OutFile page.html"] },
+  { name: "Get-NetAdapter", type: "ps", cat: "Network", desc: "Display network adapter info", syntax: "Get-NetAdapter [-Name adapter]", flags: [{k:"-Name",v:"Filter by name"},{k:"-Physical",v:"Physical only"}], examples: ["Get-NetAdapter", "Get-NetAdapter -Physical | Where Status -eq 'Up'"] },
+
+  // SYSTEM
+  { name: "systeminfo", type: "both", cat: "System", desc: "Display detailed system configuration", syntax: "systeminfo [/s computer] [/fo format]", flags: [{k:"/s",v:"Remote system"},{k:"/fo",v:"Output format"},{k:"/nh",v:"No header"}], examples: ["systeminfo", "systeminfo /fo csv > info.csv"] },
+  { name: "Get-ComputerInfo", type: "ps", cat: "System", desc: "Get detailed system/OS information", syntax: "Get-ComputerInfo [-Property name]", flags: [{k:"-Property",v:"Filter properties"}], examples: ["Get-ComputerInfo", "Get-ComputerInfo -Property OsName,TotalVisibleMemorySize"] },
+  { name: "winver", type: "cmd", cat: "System", desc: "Display Windows version information", syntax: "winver", flags: [], examples: ["winver"] },
+  { name: "$PSVersionTable", type: "ps", cat: "System", desc: "Display PowerShell version info", syntax: "$PSVersionTable", flags: [], examples: ["$PSVersionTable", "$PSVersionTable.PSVersion"] },
+  { name: "hostname", type: "both", cat: "System", desc: "Display or set computer name", syntax: "hostname", flags: [], examples: ["hostname", "$env:COMPUTERNAME"] },
+  { name: "date / time", type: "cmd", cat: "System", desc: "Display or set system date and time", syntax: "date [/t] | time [/t]", flags: [{k:"/t",v:"Display only, no prompt"}], examples: ["date /t", "time /t", "Get-Date"] },
+  { name: "Get-Date", type: "ps", cat: "System", desc: "Get current date and time", syntax: "Get-Date [-Format 'yyyy-MM-dd']", flags: [{k:"-Format",v:"Output format"},{k:"-UFormat",v:"Unix format"}], examples: ["Get-Date", "Get-Date -Format 'yyyy-MM-dd HH:mm:ss'"] },
+  { name: "set", type: "cmd", cat: "System", desc: "Display or modify environment variables", syntax: "set [variable=[value]]", flags: [], examples: ["set", "set PATH", "set MY_VAR=Hello"] },
+  { name: "setx", type: "cmd", cat: "System", desc: "Set environment variables permanently", syntax: "setx [var] [value] [/m]", flags: [{k:"/m",v:"System-wide (requires admin)"}], examples: ["setx MY_VAR \"Hello\"", "setx PATH \"%PATH%;C:\\Tools\" /m"] },
+  { name: "$env:", type: "ps", cat: "System", desc: "Access environment variables", syntax: "$env:VARIABLE | Get-ChildItem Env:", flags: [], examples: ["$env:PATH", "$env:USERPROFILE", "Get-ChildItem Env:"] },
+  { name: "shutdown", type: "both", cat: "System", desc: "Shut down, restart, or logoff Windows", syntax: "shutdown /s | /r | /l [/t N] [/f]", flags: [{k:"/s",v:"Shutdown"},{k:"/r",v:"Restart"},{k:"/l",v:"Logoff"},{k:"/a",v:"Abort"},{k:"/t",v:"Delay seconds"},{k:"/f",v:"Force close apps"}], examples: ["shutdown /s /t 0", "shutdown /r /t 30", "shutdown /a"] },
+  { name: "msconfig", type: "cmd", cat: "System", desc: "Open System Configuration utility", syntax: "msconfig", flags: [], examples: ["msconfig"] },
+  { name: "regedit", type: "cmd", cat: "System", desc: "Open Registry Editor", syntax: "regedit", flags: [], examples: ["regedit"] },
+  { name: "control", type: "cmd", cat: "System", desc: "Open Control Panel or specific applets", syntax: "control [applet]", flags: [], examples: ["control", "control appwiz.cpl", "control firewall.cpl"] },
+
+  // PROCESS
+  { name: "tasklist", type: "cmd", cat: "Process", desc: "Display list of running processes", syntax: "tasklist [/fi filter] [/fo format]", flags: [{k:"/fi",v:"Filter results"},{k:"/fo",v:"Output format"},{k:"/v",v:"Verbose output"},{k:"/svc",v:"Show services"}], examples: ["tasklist", "tasklist /fi \"STATUS eq running\"", "tasklist /fo csv"] },
+  { name: "Get-Process", short: "ps / gps", type: "ps", cat: "Process", desc: "Get running processes", syntax: "Get-Process [-Name name] [-Id pid]", flags: [{k:"-Name",v:"Filter by name"},{k:"-Id",v:"Filter by PID"},{k:"-IncludeUserName",v:"Show owner"}], examples: ["Get-Process", "gps chrome", "Get-Process | Sort CPU -Desc | Select -First 10"] },
+  { name: "taskkill", type: "cmd", cat: "Process", desc: "Kill a running process by name or PID", syntax: "taskkill /im name | /pid id [/f]", flags: [{k:"/im",v:"Image name"},{k:"/pid",v:"Process ID"},{k:"/f",v:"Force kill"},{k:"/t",v:"Kill tree"}], examples: ["taskkill /im notepad.exe /f", "taskkill /pid 1234 /f /t"] },
+  { name: "Stop-Process", short: "kill / spps", type: "ps", cat: "Process", desc: "Stop running processes", syntax: "Stop-Process [-Name name] [-Id pid] [-Force]", flags: [{k:"-Force",v:"Force terminate"},{k:"-Name",v:"By process name"},{k:"-Id",v:"By PID"}], examples: ["Stop-Process -Name notepad", "kill -Id 1234 -Force", "gps chrome | kill"] },
+  { name: "Start-Process", short: "start / saps", type: "ps", cat: "Process", desc: "Start a new process", syntax: "Start-Process [path] [-RunAs] [-Wait]", flags: [{k:"-Verb RunAs",v:"Run as admin"},{k:"-Wait",v:"Wait for exit"},{k:"-WindowStyle",v:"Window style"}], examples: ["Start-Process notepad.exe", "Start-Process cmd -Verb RunAs"] },
+  { name: "start", type: "cmd", cat: "Process", desc: "Start program or command in new window", syntax: "start [title] [/wait] [program]", flags: [{k:"/wait",v:"Wait to finish"},{k:"/min",v:"Minimized"},{k:"/max",v:"Maximized"},{k:"/b",v:"No new window"}], examples: ["start notepad.exe", "start /wait setup.exe", "start chrome https://google.com"] },
+  { name: "wmic process", type: "cmd", cat: "Process", desc: "Manage processes via WMI", syntax: "wmic process [where] [get/call]", flags: [], examples: ["wmic process list brief", "wmic process where name='chrome.exe' get processid,workingsetsize"] },
+
+  // USERS
+  { name: "whoami", type: "both", cat: "Users", desc: "Display current logged-in username", syntax: "whoami [/all] [/groups] [/priv]", flags: [{k:"/all",v:"All info"},{k:"/groups",v:"Group memberships"},{k:"/priv",v:"Privileges"}], examples: ["whoami", "whoami /all"] },
+  { name: "net user", type: "cmd", cat: "Users", desc: "Manage local user accounts", syntax: "net user [username] [password] [/add]", flags: [{k:"/add",v:"Create user"},{k:"/delete",v:"Delete user"},{k:"/active",v:"Enable/disable"},{k:"/passwordreq",v:"Password required"}], examples: ["net user", "net user admin * /add", "net user guest /active:no"] },
+  { name: "Get-LocalUser", type: "ps", cat: "Users", desc: "Get local user accounts", syntax: "Get-LocalUser [-Name user]", flags: [{k:"-Name",v:"Filter by name"},{k:"-SID",v:"Filter by SID"}], examples: ["Get-LocalUser", "Get-LocalUser -Name 'admin'"] },
+  { name: "net localgroup", type: "cmd", cat: "Users", desc: "Manage local groups and membership", syntax: "net localgroup [group] [user] [/add]", flags: [{k:"/add",v:"Add member"},{k:"/delete",v:"Remove member"}], examples: ["net localgroup Administrators", "net localgroup Administrators username /add"] },
+  { name: "runas", type: "cmd", cat: "Users", desc: "Run a command as a different user", syntax: "runas /user:domain\\user [command]", flags: [{k:"/user",v:"Run as this user"},{k:"/savecred",v:"Save credentials"}], examples: ["runas /user:Administrator cmd", "runas /user:DOMAIN\\admin notepad"] },
+
+  // DISK
+  { name: "diskpart", type: "cmd", cat: "Disk", desc: "Disk partitioning utility", syntax: "diskpart (interactive)", flags: [], examples: ["diskpart", "list disk", "select disk 0", "list partition"] },
+  { name: "Get-Disk", type: "ps", cat: "Disk", desc: "Get disk information", syntax: "Get-Disk [-Number N]", flags: [], examples: ["Get-Disk", "Get-Disk | Select Number,FriendlyName,Size"] },
+  { name: "chkdsk", type: "cmd", cat: "Disk", desc: "Check disk for errors and fix them", syntax: "chkdsk [drive:] [/f] [/r] [/x]", flags: [{k:"/f",v:"Fix errors"},{k:"/r",v:"Recover sectors"},{k:"/x",v:"Force dismount"},{k:"/scan",v:"Online scan"}], examples: ["chkdsk C:", "chkdsk C: /f /r"] },
+  { name: "format", type: "cmd", cat: "Disk", desc: "Format a disk partition", syntax: "format [drive:] [/fs:type] [/q]", flags: [{k:"/fs",v:"File system (NTFS,FAT32)"},{k:"/q",v:"Quick format"},{k:"/v",v:"Volume label"}], examples: ["format D: /fs:ntfs /q"] },
+  { name: "Get-PSDrive", type: "ps", cat: "Disk", desc: "Get drive and volume information", syntax: "Get-PSDrive [-Name name]", flags: [], examples: ["Get-PSDrive", "Get-PSDrive -PSProvider FileSystem"] },
+  { name: "Get-Volume", type: "ps", cat: "Disk", desc: "Get volume (partition) information", syntax: "Get-Volume [-DriveLetter C]", flags: [], examples: ["Get-Volume", "Get-Volume -DriveLetter C"] },
+  { name: "sfc", type: "cmd", cat: "Disk", desc: "System File Checker — scan and repair system files", syntax: "sfc /scannow | /scanfile=[path]", flags: [{k:"/scannow",v:"Full scan and repair"},{k:"/verifyonly",v:"Scan no repair"},{k:"/scanfile",v:"Scan specific file"}], examples: ["sfc /scannow"] },
+  { name: "DISM", type: "cmd", cat: "Disk", desc: "Deployment Image Servicing — repair Windows image", syntax: "DISM /Online /Cleanup-Image [options]", flags: [{k:"/ScanHealth",v:"Scan for issues"},{k:"/CheckHealth",v:"Quick check"},{k:"/RestoreHealth",v:"Repair automatically"}], examples: ["DISM /Online /Cleanup-Image /ScanHealth", "DISM /Online /Cleanup-Image /RestoreHealth"] },
+
+  // REGISTRY
+  { name: "reg query", type: "cmd", cat: "Registry", desc: "Query registry keys and values", syntax: "reg query [key] [/v value] [/s]", flags: [{k:"/v",v:"Specific value"},{k:"/s",v:"Recursive"},{k:"/f",v:"Search string"}], examples: ["reg query HKLM\\SOFTWARE\\Microsoft\\Windows", "reg query HKCU\\Environment /v PATH"] },
+  { name: "reg add", type: "cmd", cat: "Registry", desc: "Add registry key or value", syntax: "reg add [key] /v name /t type /d data", flags: [{k:"/v",v:"Value name"},{k:"/t",v:"Type (REG_SZ etc)"},{k:"/d",v:"Data"},{k:"/f",v:"Force overwrite"}], examples: ["reg add HKCU\\Software\\MyApp /v Setting /t REG_SZ /d Hello /f"] },
+  { name: "reg delete", type: "cmd", cat: "Registry", desc: "Delete registry key or value", syntax: "reg delete [key] [/v value] [/f]", flags: [{k:"/v",v:"Value to delete"},{k:"/va",v:"All values"},{k:"/f",v:"No prompt"}], examples: ["reg delete HKCU\\Software\\OldApp /f"] },
+  { name: "Get-ItemProperty", type: "ps", cat: "Registry", desc: "Read registry values", syntax: "Get-ItemProperty -Path 'HKLM:\\...'", flags: [{k:"-Name",v:"Specific value"},{k:"-Path",v:"Registry path"}], examples: ["Get-ItemProperty HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"] },
+  { name: "Set-ItemProperty", type: "ps", cat: "Registry", desc: "Set a registry value", syntax: "Set-ItemProperty -Path [key] -Name [val] -Value [data]", flags: [], examples: ["Set-ItemProperty -Path 'HKCU:\\Software\\MyApp' -Name 'Theme' -Value 'Dark'"] },
+
+  // SECURITY
+  { name: "icacls", type: "cmd", cat: "Security", desc: "Display or modify file ACLs (permissions)", syntax: "icacls [path] [/grant user:perm] [/deny]", flags: [{k:"/grant",v:"Add permissions"},{k:"/deny",v:"Deny access"},{k:"/remove",v:"Remove entry"},{k:"/reset",v:"Reset to inherited"},{k:"/inheritance",v:"Control inheritance"}], examples: ["icacls C:\\Folder", "icacls file.txt /grant Users:F", "icacls * /reset /t"] },
+  { name: "Get-Acl", type: "ps", cat: "Security", desc: "Get security descriptor (ACL) of a resource", syntax: "Get-Acl [path]", flags: [], examples: ["Get-Acl C:\\Folder", "(Get-Acl file.txt).Access"] },
+  { name: "cipher", type: "cmd", cat: "Security", desc: "Encrypt or decrypt files (EFS)", syntax: "cipher [/e] [/d] [path]", flags: [{k:"/e",v:"Encrypt"},{k:"/d",v:"Decrypt"},{k:"/r",v:"Create EFS cert"},{k:"/w",v:"Wipe free space"}], examples: ["cipher /e secret.txt", "cipher /w:C:\\"] },
+  { name: "gpupdate", type: "cmd", cat: "Security", desc: "Force update Group Policy settings", syntax: "gpupdate [/force] [/target:computer|user]", flags: [{k:"/force",v:"Reapply all policies"},{k:"/target",v:"Computer or User"}], examples: ["gpupdate /force"] },
+  { name: "gpresult", type: "cmd", cat: "Security", desc: "Display Group Policy results for user/computer", syntax: "gpresult [/r] [/h report.html]", flags: [{k:"/r",v:"Summary"},{k:"/v",v:"Verbose"},{k:"/h",v:"HTML report"}], examples: ["gpresult /r", "gpresult /h C:\\gp-report.html"] },
+  { name: "auditpol", type: "cmd", cat: "Security", desc: "Manage audit policy settings", syntax: "auditpol /get /category:* | /set ...", flags: [], examples: ["auditpol /get /category:*", "auditpol /set /subcategory:\"Logon\" /success:enable"] },
+
+  // SERVICES
+  { name: "sc", type: "cmd", cat: "Services", desc: "Service Control — manage Windows services", syntax: "sc [start|stop|query|config] [service]", flags: [{k:"start",v:"Start service"},{k:"stop",v:"Stop service"},{k:"query",v:"Query status"},{k:"config",v:"Configure service"}], examples: ["sc start wuauserv", "sc stop spooler", "sc query state= all"] },
+  { name: "net start / stop", type: "cmd", cat: "Services", desc: "Start or stop a Windows service", syntax: "net start [service] | net stop [service]", flags: [], examples: ["net start \"Windows Update\"", "net stop spooler"] },
+  { name: "Get-Service", type: "ps", cat: "Services", desc: "Get status of Windows services", syntax: "Get-Service [-Name name] [-DisplayName]", flags: [{k:"-Name",v:"Filter by name"},{k:"-DisplayName",v:"Filter by display name"},{k:"-DependentServices",v:"Show dependents"}], examples: ["Get-Service", "Get-Service -Name wuauserv", "Get-Service | Where Status -eq 'Running'"] },
+  { name: "Start-Service", type: "ps", cat: "Services", desc: "Start a stopped service", syntax: "Start-Service [-Name name] [-PassThru]", flags: [{k:"-PassThru",v:"Return object"}], examples: ["Start-Service -Name wuauserv", "Get-Service spooler | Start-Service"] },
+  { name: "Stop-Service", type: "ps", cat: "Services", desc: "Stop a running service", syntax: "Stop-Service [-Name name] [-Force]", flags: [{k:"-Force",v:"Force stop dependents"}], examples: ["Stop-Service -Name spooler", "Stop-Service -Name wuauserv -Force"] },
+  { name: "Restart-Service", type: "ps", cat: "Services", desc: "Restart a Windows service", syntax: "Restart-Service [-Name name]", flags: [], examples: ["Restart-Service -Name spooler", "Get-Service dns | Restart-Service"] },
+
+  // SCRIPTING
+  { name: "echo", type: "both", cat: "Scripting", desc: "Display messages or toggle command echoing", syntax: "echo [message] | echo on|off", flags: [], examples: ["echo Hello World", "echo %PATH%", "echo $env:PATH"] },
+  { name: "Write-Host", type: "ps", cat: "Scripting", desc: "Write output to the console", syntax: "Write-Host [text] [-ForegroundColor color]", flags: [{k:"-ForegroundColor",v:"Text color"},{k:"-BackgroundColor",v:"Background color"},{k:"-NoNewline",v:"No line break"}], examples: ["Write-Host 'Hello' -ForegroundColor Cyan", "Write-Host 'Done' -ForegroundColor Green"] },
+  { name: "for", type: "cmd", cat: "Scripting", desc: "Loop over a set of files or values", syntax: "for [options] %var in (set) do command", flags: [{k:"/l",v:"Numeric range"},{k:"/f",v:"Parse files"},{k:"/d",v:"Directories"},{k:"/r",v:"Recursive"}], examples: ["for %i in (*.txt) do echo %i", "for /l %i in (1,1,10) do echo %i"] },
+  { name: "ForEach-Object", short: "foreach / %", type: "ps", cat: "Scripting", desc: "Perform operation on each input object", syntax: "ForEach-Object { $_ ... }", flags: [{k:"-Process",v:"Process block"},{k:"-Begin",v:"Init block"},{k:"-End",v:"Cleanup block"}], examples: ["1..10 | ForEach-Object { $_ * 2 }", "gci *.txt | % { $_.Name }"] },
+  { name: "Where-Object", short: "where / ?", type: "ps", cat: "Scripting", desc: "Filter objects from pipeline", syntax: "Where-Object { condition }", flags: [], examples: ["Get-Process | Where-Object CPU -gt 100", "gci | ? { $_.Length -gt 1MB }"] },
+  { name: "if / else", type: "cmd", cat: "Scripting", desc: "Conditional execution in batch scripts", syntax: "if [condition] command [else command]", flags: [{k:"exist",v:"File exists check"},{k:"errorlevel",v:"Check exit code"},{k:"/i",v:"Case insensitive compare"}], examples: ["if exist file.txt echo Found", "if %ERRORLEVEL% neq 0 echo Failed"] },
+  { name: "if / else (PS)", type: "ps", cat: "Scripting", desc: "PowerShell conditional statement", syntax: "if (condition) { } elseif { } else { }", flags: [], examples: ["if ($x -gt 5) { 'big' } else { 'small' }", "if (Test-Path file.txt) { 'exists' }"] },
+  { name: "cls / Clear-Host", type: "both", cat: "Scripting", desc: "Clear the terminal screen", syntax: "cls | Clear-Host", flags: [], examples: ["cls", "Clear-Host"] },
+  { name: "exit", type: "both", cat: "Scripting", desc: "Exit the command prompt or set exit code", syntax: "exit [/b] [exitcode]", flags: [{k:"/b",v:"Exit script only"}], examples: ["exit", "exit 0", "exit /b 1"] },
+  { name: "pause", type: "cmd", cat: "Scripting", desc: "Pause execution and wait for keypress", syntax: "pause", flags: [], examples: ["pause", "echo Press any key... && pause >nul"] },
+  { name: "Read-Host", type: "ps", cat: "Scripting", desc: "Read input from the user", syntax: "Read-Host [-Prompt 'text'] [-AsSecureString]", flags: [{k:"-Prompt",v:"Display prompt text"},{k:"-AsSecureString",v:"Mask input"}], examples: ["$name = Read-Host 'Enter name'", "$pass = Read-Host 'Password' -AsSecureString"] },
+  { name: "Invoke-Expression", short: "iex", type: "ps", cat: "Scripting", desc: "Execute a string as a command", syntax: "Invoke-Expression [string]", flags: [], examples: ["iex 'Get-Process'", "iex (New-Object Net.WebClient).DownloadString('http://...')"] },
+  { name: "pipe |", type: "both", cat: "Scripting", desc: "Pipe output of one command to another", syntax: "command1 | command2", flags: [], examples: ["tasklist | findstr chrome", "Get-Process | Sort CPU -Desc | Select -First 5"] },
+  { name: "redirect > >>", type: "both", cat: "Scripting", desc: "Redirect output to a file", syntax: "command > file | command >> file", flags: [], examples: ["ipconfig > output.txt", "Get-Process >> log.txt", "command 2>&1 > all.txt"] },
+];
+
+// State
+let activeFilter = 'all';
+let activeCat = null;
+let searchQuery = '';
+
+function getType(cmd) { return cmd.type; }
+
+function typeLabel(t) {
+  if (t === 'cmd') return '<span class="type-badge badge-cmd">CMD</span>';
+  if (t === 'ps') return '<span class="type-badge badge-ps">PS</span>';
+  return '<span class="type-badge badge-both">BOTH</span>';
+}
+
+function filtered() {
+  return COMMANDS.filter(c => {
+    if (activeFilter !== 'all' && c.type !== activeFilter) return false;
+    if (activeCat && c.cat !== activeCat) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return c.name.toLowerCase().includes(q) ||
+             c.desc.toLowerCase().includes(q) ||
+             (c.short && c.short.toLowerCase().includes(q)) ||
+             c.cat.toLowerCase().includes(q);
+    }
+    return true;
+  });
+}
+
+function render() {
+  const main = document.getElementById('main');
+  const cmds = filtered();
+  const stats = document.getElementById('stats');
+  
+  stats.innerHTML = `Showing <span>${cmds.length}</span> of <span>${COMMANDS.length}</span> commands`;
+
+  if (!cmds.length) {
+    main.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">No commands found for "${searchQuery}"</div></div>`;
+    return;
+  }
+
+  // Group by category
+  const cats = {};
+  cmds.forEach(c => {
+    if (!cats[c.cat]) cats[c.cat] = [];
+    cats[c.cat].push(c);
+  });
+
+  const catOrder = ['Files','Network','System','Process','Users','Disk','Registry','Security','Services','Scripting'];
+
+  let html = '';
+  catOrder.forEach(cat => {
+    if (!cats[cat]) return;
+    html += `<div class="section">
+      <div class="section-header">
+        <div class="section-title">${cat}</div>
+        <div class="section-count">${cats[cat].length}</div>
+      </div>
+      <div class="cmd-grid">`;
+    cats[cat].forEach((c, i) => {
+      html += `<div class="cmd-card type-${c.type}" data-name="${c.name}" style="animation-delay:${i*0.02}s" onclick="openModal('${c.name.replace(/'/g,"\\'")}')">
+        <div class="cmd-top">
+          <div class="cmd-name">${c.name}${c.short ? `<br><span style="font-size:10px;color:var(--text3);font-weight:400">${c.short}</span>` : ''}</div>
+          ${typeLabel(c.type)}
+        </div>
+        <div class="cmd-desc">${c.desc}</div>
+        <div class="cmd-syntax">
+          <span class="syntax-text">${c.syntax}</span>
+          <button class="copy-btn" onclick="copyText(event, '${c.syntax.replace(/'/g,"\\'")}')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  main.innerHTML = html;
+}
+
+function copyText(e, text) {
+  e.stopPropagation();
+  navigator.clipboard.writeText(text).catch(() => {});
+  const btn = e.currentTarget;
+  btn.classList.add('copied');
+  btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>`;
+  setTimeout(() => {
+    btn.classList.remove('copied');
+    btn.innerHTML = `<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+  }, 1500);
+}
+
+function openModal(name) {
+  const c = COMMANDS.find(x => x.name === name);
+  if (!c) return;
+  const overlay = document.getElementById('modalOverlay');
+  const modal = document.getElementById('modal');
+  modal.className = `modal modal-type-${c.type}`;
+
+  let flagsHtml = c.flags.length ? `
+    <div class="modal-section">
+      <div class="modal-label">Flags & Options</div>
+      <div class="flags-list">
+        ${c.flags.map(f => `<div class="flag-item"><span class="flag-key">${f.k}</span><span class="flag-val">${f.v}</span></div>`).join('')}
+      </div>
+    </div>` : '';
+
+  let examplesHtml = c.examples.length ? `
+    <div class="modal-section">
+      <div class="modal-label">Examples</div>
+      <div class="code-block">
+        <button class="copy-all" onclick="copyAll('${c.examples.join('\\n').replace(/'/g,"\\'")}')">Copy all</button>
+        ${c.examples.map(ex => `<span class="code-line">${ex}</span>`).join('')}
+      </div>
+    </div>` : '';
+
+  document.getElementById('modalContent').innerHTML = `
+    <div class="modal-title">${c.name}</div>
+    <div style="margin-bottom:12px">${typeLabel(c.type)} <span style="font-size:11px;color:var(--text3);margin-left:6px">${c.cat}</span></div>
+    <div class="modal-subtitle">${c.desc}</div>
+    <div class="modal-section">
+      <div class="modal-label">Syntax</div>
+      <div class="code-block">
+        <button class="copy-all" onclick="copyAll('${c.syntax.replace(/'/g,"\\'")}')">Copy</button>
+        <span>${c.syntax}</span>
+      </div>
+    </div>
+    ${flagsHtml}
+    ${examplesHtml}
+  `;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function copyAll(text) {
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModalBtn();
+}
+
+function closeModalBtn() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Filter buttons
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  const chip = e.target.closest('.cat-chip');
+  
+  if (btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
+    activeFilter = btn.dataset.filter;
+    btn.className = `filter-btn active-${activeFilter}`;
+    render();
+  }
+  
+  if (chip) {
+    const cat = chip.dataset.cat;
+    if (activeCat === cat) {
+      activeCat = null;
+      chip.classList.remove('active');
+    } else {
+      document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+      activeCat = cat;
+      chip.classList.add('active');
+    }
+    render();
+  }
+});
+
+document.getElementById('search').addEventListener('input', e => {
+  searchQuery = e.target.value.trim();
+  render();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModalBtn();
+  if (e.key === '/' && document.activeElement !== document.getElementById('search')) {
+    e.preventDefault();
+    document.getElementById('search').focus();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
