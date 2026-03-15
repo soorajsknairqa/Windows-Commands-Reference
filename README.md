@@ -1,11 +1,5 @@
 windows-commands.html
-File
-Write About this doc
 
-The document you uploaded is an HTML webpage called “WinCMD — Windows Command Reference.” It is a complete interactive website that helps users search, learn, and copy Windows command-line commands for Command Prompt (CMD) and PowerShell.
-
-Below is a clear explanation of the document.
-Overview of the Document
 
 The file is a single-page web application built with HTML, CSS, and JavaScript. Its purpose is to provide a visual reference guide for Windows command-line commands. Users can browse commands, search for them, filter by category, and view examples.
 
